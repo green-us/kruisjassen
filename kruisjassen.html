@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kruisjassen – Browserversie</title>
+    <style>
+        :root {
+            --tafel-groen: #0f5132;
+            --tafel-donker: #0a2c1f;
+            --kaart-wit: #ffffff;
+            --kaart-rood: #ff0000;
+            --kaart-zwart: #000000;
+            --fout-rood: #ff4444;
+            --knop-wit: #ffffff;
+            --knop-tekst: #000000;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--tafel-donker);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+        #tafel {
+            width: 90%;
+            max-width: 900px;
+            height: 500px;
+            background-color: var(--tafel-groen);
+            border-radius: 15px;
+            position: relative;
+            margin: 10px 0;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        #hand {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: var(--tafel-donker);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 900px;
+            margin-top: 10px;
+        }
+        .kaart {
+            width: 70px;
+            height: 100px;
+            background-color: var(--kaart-wit);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .kaart:hover {
+            transform: translateY(-5px);
+        }
+        .kaart .rank {
+            font-size: 16px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .kaart .suit {
+            font-size: 24px;
+            margin-left: 5px;
+        }
+        .kaart.rood .rank, .kaart.rood .suit {
+            color: var(--kaart-rood);
+        }
+        .kaart.zwart .rank, .kaart.zwart .suit {
+            color: var(--kaart-zwart);
+        }
+        #foutmelding {
+            color: var(--fout-rood);
+            font-weight: bold;
+            margin: 10px 0;
+            min-height: 24px;
+            text-align: center;
+        }
+        #knoppen {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: var(--knop-wit);
+            color: var(--knop-tekst);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        #troef-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        #slag-midden {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+        }
+        .speler-hand {
+            position: absolute;
+            display: flex;
+            gap: 5px;
+        }
+        #noord {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #zuid {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #west {
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            flex-direction: column;
+        }
+        #oost {
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            flex-direction: column;
+        }
+        #stapels {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .stapel {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .stapel-kaart {
+            width: 50px;
+            height: 70px;
+            background-color: var(--kaart-wit);
+            border-radius: 5px;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        @media (max-width: 768px) {
+            #tafel {
+                height: 400px;
+            }
+            .kaart {
+                width: 60px;
+                height: 85px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Kruisjassen</h1>
+    <div id="foutmelding"></div>
+    <div id="tafel">
+        <div id="troef-indicator">Troef: <span id="troef-waarde"></span></div>
+        <div id="slag-midden"></div>
+        <div id="noord" class="speler-hand"></div>
+        <div id="zuid" class="speler-hand"></div>
+        <div id="west" class="speler-hand"></div>
+        <div id="oost" class="speler-hand"></div>
+        <div id="stapels">
+            <div class="stapel" id="stapel-jouw-team" style="bottom: 20px; right: 20px;"></div>
+            <div class="stapel" id="stapel-andere-team" style="top: 20px; left: 20px;"></div>
+        </div>
+    </div>
+    <div id="hand"></div>
+    <div id="knoppen">
+        <button onclick="deelKaarten()">Deel kaarten</button>
+        <button onclick="toonRegels()">Regels</button>
+        <button onclick="toonPunten()">Punten</button>
+        <button onclick="nieuwePot()">Nieuwe pot</button>
+    </div>
+    <script>
+        const KLEUREN = ['♣', '♦', '♥', '♠'];
+        const WAARDEN = ['7', '8', '9', '10', 'B', 'V', 'H', 'A'];
+        const TROEF_RANGORDE = { '7': 0, '8': 1, '10': 2, 'V': 3, 'H': 4, 'A': 5, '9': 6, 'B': 7 };
+        const NIET_TROEF_RANGORDE = { '7': 0, '8': 1, '9': 2, '10': 3, 'B': 4, 'V': 5, 'H': 6, 'A': 7 };
+        const PUNTEN = {
+            nietTroef: { 'A': 11, 'H': 3, 'V': 2, 'B': 1, '10': 10, '9': 0, '8': 0, '7': 0 },
+            troef: { 'B': 20, '9': 14, 'A': 11, 'H': 3, 'V': 2, '10': 10, '8': 0, '7': 0 }
+        };
+        let deck = [];
+        let handen = [[], [], [], []];
+        let troefKleur = null;
+        let huidigeSlag = { kaarten: [], spelers: [], uitkomer: 0 };
+        let huidigeSpeler = 0;
+        let pottenGespeeld = 0;
+        let capturedJouwTeam = [];
+        let capturedAndereTeam = [];
+        const handElement = document.getElementById('hand');
+        const foutElement = document.getElementById('foutmelding');
+        const troefIndicator = document.getElementById('troef-waarde');
+        const noordHand = document.getElementById('noord');
+        const zuidHand = document.getElementById('zuid');
+        const westHand = document.getElementById('west');
+        const oostHand = document.getElementById('oost');
+        const stapelJouwTeam = document.getElementById('stapel-jouw-team');
+        const stapelAndereTeam = document.getElementById('stapel-andere-team');
+        window.onload = () => { deelKaarten(); };
+        function initialiseerSpel() {
+            deck = [];
+            for (const kleur of KLEUREN) for (const waarde of WAARDEN) deck.push({ kleur, waarde });
+            schudden(); delen(); kiesTroef(); resetSlag(); tekenAlles();
+        }
+        function schudden() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+        function delen() {
+            for (let i = 0; i < 4; i++) handen[i] = [];
+            for (let i = 0; i < 32; i++) handen[i % 4].push(deck[i]);
+            for (let i = 0; i < 4; i++) handen[i].sort((a, b) => KLEUREN.indexOf(a.kleur) - KLEUREN.indexOf(b.kleur) || WAARDEN.indexOf(a.waarde) - WAARDEN.indexOf(b.waarde));
+        }
+        function kiesTroef() {
+            troefKleur = KLEUREN[Math.floor(Math.random() * KLEUREN.length)];
+            troefIndicator.textContent = troefKleur;
+        }
+        function resetSlag() {
+            huidigeSlag = { kaarten: [], spelers: [], uitkomer: (huidigeSpeler + 1) % 4 };
+            huidigeSpeler = huidigeSlag.uitkomer;
+            capturedJouwTeam = [];
+            capturedAndereTeam = [];
+        }
+        function deelKaarten() { initialiseerSpel(); }
+        function nieuwePot() { resetSlag(); initialiseerSpel(); }
+        function tekenAlles() { tekenHand(); tekenTafel(); tekenStapels(); }
+        function tekenHand() {
+            handElement.innerHTML = '';
+            const isJouwBeurt = huidigeSpeler === 0;
+            for (let i = 0; i < handen[0].length; i++) {
+                const kaart = handen[0][i];
+                const kaartElement = document.createElement('div');
+                kaartElement.className = `kaart ${kaart.kleur === '♥' || kaart.kleur === '♦' ? 'rood' : 'zwart'}`;
+                kaartElement.innerHTML = `<span class="rank">${kaart.waarde}</span><span class="suit">${kaart.kleur}</span>`;
+                kaartElement.onclick = isJouwBeurt ? () => selecteerKaart(i) : null;
+                handElement.appendChild(kaartElement);
+            }
+        }
+        function tekenTafel() {
+            noordHand.innerHTML = ''; zuidHand.innerHTML = ''; westHand.innerHTML = ''; oostHand.innerHTML = '';
+            for (let i = 0; i < huidigeSlag.kaarten.length; i++) {
+                const kaart = huidigeSlag.kaarten[i];
+                const speler = huidigeSlag.spelers[i];
+                const kaartElement = maakKaartElement(kaart);
+                kaartElement.style.transform = 'none'; kaartElement.style.cursor = 'default';
+                if (speler === 0) {
+                    kaartElement.style.position = 'absolute'; kaartElement.style.bottom = '20px'; kaartElement.style.left = `${40 + i * 80}px`;
+                    zuidHand.appendChild(kaartElement);
+                } else if (speler === 1) {
+                    kaartElement.style.position = 'absolute'; kaartElement.style.left = '20px'; kaartElement.style.top = `${40 + i * 30}px`;
+                    westHand.appendChild(kaartElement);
+                } else if (speler === 2) {
+                    kaartElement.style.position = 'absolute'; kaartElement.style.top = '20px'; kaartElement.style.left = `${40 + i * 80}px`;
+                    noordHand.appendChild(kaartElement);
+                } else if (speler === 3) {
+                    kaartElement.style.position = 'absolute'; kaartElement.style.right = '20px'; kaartElement.style.top = `${40 + i * 30}px`;
+                    oostHand.appendChild(kaartElement);
+                }
+            }
+        }
+        function tekenStapels() {
+            stapelJouwTeam.innerHTML = ''; stapelAndereTeam.innerHTML = '';
+            for (let i = 0; i < capturedJouwTeam.length; i++) {
+                const kaartElement = document.createElement('div'); kaartElement.className = 'stapel-kaart'; stapelJouwTeam.appendChild(kaartElement);
+            }
+            for (let i = 0; i < capturedAndereTeam.length; i++) {
+                const kaartElement = document.createElement('div'); kaartElement.className = 'stapel-kaart'; stapelAndereTeam.appendChild(kaartElement);
+            }
+        }
+        function maakKaartElement(kaart) {
+            const kaartElement = document.createElement('div');
+            kaartElement.className = `kaart ${kaart.kleur === '♥' || kaart.kleur === '♦' ? 'rood' : 'zwart'}`;
+            kaartElement.innerHTML = `<span class="rank">${kaart.waarde}</span><span class="suit">${kaart.kleur}</span>`;
+            return kaartElement;
+        }
+        function selecteerKaart(index) {
+            const kaart = handen[0][index];
+            const reden = isGeldigeZet(kaart);
+            if (reden !== true) { toonFout(reden); return; }
+            speelKaart(0, index);
+        }
+        function isGeldigeZet(kaart) {
+            if (huidigeSlag.kaarten.length === 0) return true;
+            const uitkomendeKleur = huidigeSlag.kaarten[0].kleur;
+            const hand = handen[0];
+            const heeftUitkomendeKleur = hand.some(k => k.kleur === uitkomendeKleur);
+            const heeftTroef = hand.some(k => k.kleur === troefKleur);
+            const maat = 2;
+            const maatHeeftTroef = huidigeSlag.spelers.some((speler, idx) => speler === maat && huidigeSlag.kaarten[idx].kleur === troefKleur);
+            if (uitkomendeKleur === troefKleur && heeftUitkomendeKleur && !maatHeeftTroef) {
+                const heeftBoer = hand.some(k => k.kleur === troefKleur && k.waarde === 'B');
+                if (heeftBoer && kaart.waarde !== 'B' && kaart.kleur === troefKleur) return "De boer mag niet verzwegen worden bij troef bedienen.";
+            }
+            if (heeftUitkomendeKleur && kaart.kleur !== uitkomendeKleur) {
+                if (kaart.kleur !== troefKleur) {
+                    if (maatHeeftTroef) return true;
+                    return "Van soort bedienen of troef spelen verplicht.";
+                }
+            }
+            if (!heeftUitkomendeKleur && heeftTroef && kaart.kleur !== troefKleur) {
+                if (maatHeeftTroef) return true;
+                return "Je moet troef spelen.";
+            }
+            return true;
+        }
+        function speelKaart(speler, kaartIndex) {
+            const kaart = handen[speler].splice(kaartIndex, 1)[0];
+            huidigeSlag.kaarten.push(kaart); huidigeSlag.spelers.push(speler);
+            if (huidigeSlag.kaarten.length === 4) {
+                const winnaar = bepaalWinnaarSlag();
+                const winnaarTeam = winnaar % 2 === 0 ? capturedJouwTeam : capturedAndereTeam;
+                winnaarTeam.push(...huidigeSlag.kaarten);
+                pottenGespeeld++;
+                if (pottenGespeeld >= 8) {
+                    const jouwPunten = telPunten(capturedJouwTeam);
+                    const anderePunten = telPunten(capturedAndereTeam);
+                    setTimeout(() => alert(`Einde van de pot!\nJouw team: ${jouwPunten} punten\nAndere team: ${anderePunten} punten\nKlik op "Nieuwe pot" om door te gaan.`), 500);
+                }
+                resetSlag(); huidigeSpeler = winnaar;
+            } else {
+                huidigeSpeler = (huidigeSpeler + 1) % 4;
+            }
+            if (huidigeSpeler !== 0) {
+                setTimeout(() => speelKaart(huidigeSpeler, kiesAIZet(huidigeSpeler)), 1000);
+            }
+            tekenAlles(); foutElement.textContent = '';
+        }
+        function kiesAIZet(speler) {
+            const hand = handen[speler];
+            const legaleZetten = [];
+            for (let i = 0; i < hand.length; i++) {
+                if (isGeldigeZetAI(speler, hand[i])) legaleZetten.push(i);
+            }
+            return legaleZetten[Math.floor(Math.random() * legaleZetten.length)];
+        }
+        function isGeldigeZetAI(speler, kaart) {
+            if (huidigeSlag.kaarten.length === 0) return true;
+            const uitkomendeKleur = huidigeSlag.kaarten[0].kleur;
+            const hand = handen[speler];
+            const heeftUitkomendeKleur = hand.some(k => k.kleur === uitkomendeKleur);
+            const heeftTroef = hand.some(k => k.kleur === troefKleur);
+            const maat = (speler + 2) % 4;
+            const maatHeeftTroef = huidigeSlag.spelers.some((s, idx) => s === maat && huidigeSlag.kaarten[idx].kleur === troefKleur);
+            if (uitkomendeKleur === troefKleur && heeftUitkomendeKleur && !maatHeeftTroef) {
+                const heeftBoer = hand.some(k => k.kleur === troefKleur && k.waarde === 'B');
+                if (heeftBoer && kaart.waarde !== 'B' && kaart.kleur === troefKleur) return false;
+            }
+            if (heeftUitkomendeKleur && kaart.kleur !== uitkomendeKleur && kaart.kleur !== troefKleur && !maatHeeftTroef) return false;
+            if (!heeftUitkomendeKleur && heeftTroef && kaart.kleur !== troefKleur && !maatHeeftTroef) return false;
+            return true;
+        }
+        function bepaalWinnaarSlag() {
+            const uitkomendeKleur = huidigeSlag.kaarten[0].kleur;
+            let winnaarIndex = 0; let winnaarKaart = huidigeSlag.kaarten[0];
+            for (let i = 1; i < 4; i++) {
+                const kaart = huidigeSlag.kaarten[i];
+                if (isBeter(kaart, winnaarKaart, uitkomendeKleur)) { winnaarIndex = i; winnaarKaart = kaart; }
+            }
+            return huidigeSlag.spelers[winnaarIndex];
+        }
+        function isBeter(a, b, uitkomendeKleur) {
+            const aIsTroef = a.kleur === troefKleur; const bIsTroef = b.kleur === troefKleur;
+            if (aIsTroef !== bIsTroef) return aIsTroef;
+            if (aIsTroef) return TROEF_RANGORDE[a.waarde] > TROEF_RANGORDE[b.waarde];
+            const aIsUitkomend = a.kleur === uitkomendeKleur; const bIsUitkomend = b.kleur === uitkomendeKleur;
+            if (aIsUitkomend !== bIsUitkomend) return aIsUitkomend;
+            if (aIsUitkomend) return NIET_TROEF_RANGORDE[a.waarde] > NIET_TROEF_RANGORDE[b.waarde];
+            return false;
+        }
+        function telPunten(kaarten) {
+            let punten = 0;
+            for (const kaart of kaarten) {
+                const isTroef = kaart.kleur === troefKleur;
+                punten += isTroef ? PUNTEN.troef[kaart.waarde] || 0 : PUNTEN.nietTroef[kaart.waarde] || 0;
+            }
+            if (kaarten.length > 0 && kaarten.length % 4 === 0) punten += 5;
+            return punten;
+        }
+        function toonFout(bericht) { foutElement.textContent = bericht; }
+        function toonRegels() {
+            alert(`Kruisjassen – Regels:\n\n• 4 spelers. Zuid = jij. 32 kaarten (7..A).\n• De deler toont de troefkleur.\n• Uitkomen begint links van de deler; met de klok mee.\n• Van soort bedienen is verplicht, óf je legt troef.\n• Uitzondering: als jouw maat in de lopende slag al troef heeft gelegd, mag je vrij kiezen.\n• Kun je niet bedienen en ben je niet vrijgesteld door troef van je maat, dan moet je troef spelen.\n• Hoogte niet-troef (hoog→laag): A, H, V, B, 10, 9, 8, 7.\n• Hoogte troef (hoog→laag): B, 9, A, H, V, 10, 8, 7.\n• Opmerking: de troef negen wordt de "Nel" genoemd.\n• De winnaar van de slag komt de volgende slag uit.\n• Boer-plicht: als troef is gevraagd en je kunt bedienen, en je maat de slag niet leidt, moet je de troefboer spelen als je die bezit.`);
+        }
+        function toonPunten() {
+            alert(`Kruisjassen – Punten:\n\nNiet-troef: A=11, H=3, V=2, B=1, 10=10, 9=0, 8=0, 7=0\nTroef: B=20, 9=14 ("Nel"), A=11, H=3, V=2, 10=10, 8=0, 7=0\n\nPuntentelling:\n• Totaal per pot is 146 (incl. +5 voor de laatste slag).\n• Alle slagen door één team = ‘kapot gespeeld’: +45 extra voor dat team.`);
+        }
+    </script>
+</body>
+</html>
